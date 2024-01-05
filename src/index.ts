@@ -1,12 +1,11 @@
 import {
-  PointerTypes,
   QueryTypes,
   SchemaRoot,
-  SchemaTypes,
   getReferencedObject,
   makeQueryRef,
 } from "./floro-generator-schema-api";
-import floroGeneratorFile from '../floro/floro.generator.json';
+//@ts-ignore
+import floroGeneratorFile from '../floro/floro.generator.json' assert {type: "json"};
 import path from "path";
 import fs from "fs";
 import { quicktype, InputData, JSONSchemaInput, TypeScriptTargetLanguage } from "quicktype-core";
