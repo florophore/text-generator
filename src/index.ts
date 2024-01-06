@@ -75,9 +75,9 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
   const defaultLocaleCode: string = Object.values(localizedPhrases.locales).find(l => l.isGlobalDefault)?.localeCode;
   const locale = localizedPhrases.locales[localeKey];
   const phrase =
-    localizedPhrases.localizedPhraseKeys[locale?.localeCode as string][
+    localizedPhrases.localizedPhraseKeys?.[locale?.localeCode as string]?.[
       phraseKey
-    ] ?? localizedPhrases.localizedPhraseKeys[defaultLocaleCode as string][
+    ] ?? localizedPhrases.localizedPhraseKeys?.[defaultLocaleCode as string]?.[
       phraseKey
     ];
 
