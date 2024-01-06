@@ -54,6 +54,7 @@ const isStatementTrue = <T>(
   return false;
 };
 
+
 export const getPhraseValue = <C, T extends keyof Locales, K extends keyof PhraseKeys>(
   localizedPhrases: LocalizedPhrases,
   localeKey: T,
@@ -71,9 +72,12 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
       ) => C;
     }
 ): StaticNode<C>[] => {
+  const defaultLocaleCode: string = Object.values(localizedPhrases.locales).find(l => l.isGlobalDefault)?.localeCode;
   const locale = localizedPhrases.locales[localeKey];
   const phrase =
     localizedPhrases.localizedPhraseKeys[locale?.localeCode as string][
+      phraseKey
+    ] ?? localizedPhrases.localizedPhraseKeys[defaultLocaleCode as string][
       phraseKey
     ];
 
@@ -1641,10 +1645,9 @@ export async function generate(
     const { lines } = await quicktype({ lang, inputData });
     const code = lines.join("\n");
     const tsFile = path.join(outDir, 'index.ts');
-    let tsCode =`import textJSON from './text.json';\n\n`;
+    let tsCode = "";
     tsCode += code + '\n';
     tsCode += CODE + '\n\n';
-    tsCode += `export default textJSON as unknown as LocalizedPhrases;`;
     if (noLinks) {
       tsCode += '\n\n' +`
 interface PlainTextNode {
@@ -1678,9 +1681,7 @@ interface Interpolation {
 }
 `.trim()
     }
-
     await fs.promises.writeFile(tsFile, tsCode, 'utf-8');
-
     const textJson = await getJSON(state);
     const jsonFile = path.join(outDir, 'text.json');
     await fs.promises.writeFile(jsonFile, JSON.stringify(textJson, null, 2), 'utf-8');
