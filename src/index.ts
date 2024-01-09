@@ -80,6 +80,21 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
     ] ?? localizedPhrases.localizedPhraseKeys?.[defaultLocaleCode as string]?.[
       phraseKey
     ];
+  if (!phrase) {
+    return [{
+      content: "",
+      children: [],
+      type: "text",
+      styles: {
+        isBold: false,
+        isItalic: false,
+        isStrikethrough: false,
+        isSubscript: false,
+        isSuperscript: false,
+        isUnderlined: false,
+      }
+    }];
+  }
 
   const interpolationMap = {} as {
     [k: string]: StaticNode<C>[];
