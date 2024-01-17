@@ -75,9 +75,9 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
   const defaultLocaleCode: string = Object.values(localizedPhrases.locales).find(l => l.isGlobalDefault)?.localeCode;
   const locale = localizedPhrases.locales[localeKey];
   const phrase =
-    localizedPhrases.localizedPhraseKeys?.[locale?.localeCode as string]?.[
+    localizedPhrases.localizedPhraseKeys?.[locale?.localeCode as keyof typeof localizedPhrases.localizedPhraseKeys]?.[
       phraseKey
-    ] ?? localizedPhrases.localizedPhraseKeys?.[defaultLocaleCode as string]?.[
+    ] ?? localizedPhrases.localizedPhraseKeys?.[defaultLocaleCode as keyof typeof localizedPhrases.localizedPhraseKeys]?.[
       phraseKey
     ];
   if (!phrase) {
@@ -101,7 +101,7 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
   };
   for (const interpolationKey in phrase.interpolations) {
     const interpolation: Interpolation =
-      phrase.interpolations[interpolationKey];
+      phrase.interpolations[interpolationKey as keyof typeof phrase.interpolations];
     interpolationMap[interpolationKey] = getInterpolationValue(
       interpolation,
       args
@@ -116,7 +116,7 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
       linkName: string;
       href: PlainTextNode[];
       displayValue: TextNode[];
-    } = phrase.links[linkKey];
+    } = phrase.links[linkKey as keyof typeof phrase.links];
     hrefMap[linkKey] = getStaticText(link.href, args);
   }
   const linkMap = {} as {
@@ -127,7 +127,7 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
       linkName: string;
       href: PlainTextNode[];
       displayValue: TextNode[];
-    } = phrase.links[linkKey];
+    } = phrase.links[linkKey as keyof typeof phrase.links];
     linkMap[linkKey] = getStaticNodes(
       link.displayValue,
       args,
@@ -145,7 +145,7 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
   };
   for (const styledContentKey in phrase.styledContents) {
     const styledContent: StyledContent =
-      phrase.styledContents[styledContentKey];
+      phrase.styledContents[styledContentKey as keyof typeof phrase.styledContents];
     styledContentMap[styledContentKey] = {
       styleClass:
         styledContent.styleClass as keyof PhraseKeys[K]["styleClasses"],
@@ -410,7 +410,7 @@ K extends keyof PhraseKeys,
 
      ) => {
   for (const caseStatement of interpolation.cases) {
-    const argValue: PhraseKeys[K]["variables"][keyof PhraseKeys[K]["variables"]]|string|number|boolean = args[caseStatement.variable];
+    const argValue: PhraseKeys[K]["variables"][keyof PhraseKeys[K]["variables"]]|string|number|boolean = args[caseStatement.variable as keyof typeof args];
     const comparatorValue = caseStatement.value as PhraseKeys[K]["variables"][keyof PhraseKeys[K]["variables"]];
     const operator = caseStatement.operator as "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "is_fractional";
     if (!isStatementTrue(argValue, comparatorValue, operator)) {
