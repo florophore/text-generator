@@ -1696,7 +1696,7 @@ interface Interpolation {
 }
 `.trim()
 
-  if (!tsCode.indexOf('enum PhraseType')) {
+  if (tsCode.indexOf('enum PhraseType') == -1) {
       tsCode += '\n\n' +`
 export enum PhraseType {
     ContentVariable = "content-variable",
