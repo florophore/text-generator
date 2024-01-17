@@ -1695,6 +1695,22 @@ interface Interpolation {
   default: [];
 }
 `.trim()
+
+  if (!tsCode.indexOf('enum PhraseType')) {
+      tsCode += '\n\n' +`
+export enum PhraseType {
+    ContentVariable = "content-variable",
+    Interpolation = "interpolation",
+    Li = "li",
+    Link = "link",
+    Ol = "ol",
+    StyledContent = "styled-content",
+    Text = "text",
+    UL = "ul",
+    Variable = "variable",
+}
+`.trim()
+  }
     }
     await fs.promises.writeFile(tsFile, tsCode, 'utf-8');
     const textJson = await getJSON(state);
