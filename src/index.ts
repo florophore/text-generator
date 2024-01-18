@@ -55,22 +55,45 @@ const isStatementTrue = <T>(
 };
 
 
+declare type ARGTYPE<
+  C,
+  K extends keyof PhraseKeys
+> = {
+  [KV in keyof PhraseKeys[K]["variables"]]: PhraseKeys[K]["variables"][KV];
+} & {
+  [KCV in keyof PhraseKeys[K]["contentVariables"]]: C;
+} & {
+  [KSC in keyof PhraseKeys[K]["styleClasses"]]: (
+    content: C,
+    styledContentName: keyof PhraseKeys[K]["styledContents"] & string
+  ) => C;
+};
+
+declare type HREF_MAP<K extends keyof PhraseKeys> = {
+  [key in keyof PhraseKeys[K]["links"] as string]: string;
+}
+
+declare type LINK_MAP<C, K extends keyof PhraseKeys> = {
+    [key in keyof PhraseKeys[K]["links"] as string]: StaticNode<C>[];
+}
+
+declare type INTERPOLATION_MAP<C, K extends keyof PhraseKeys> = {
+  [key in keyof PhraseKeys[K]["interpolations"] as string]: StaticNode<C>[];
+}
+
+declare type STYLED_CONTENT_MAP<C, K extends keyof PhraseKeys> = {
+  [key in keyof PhraseKeys[K]["styledContents"] as string]: {
+    nodes: StaticNode<C>[];
+    styleClass: keyof PhraseKeys[K]["styleClasses"];
+  };
+};
+
+
 export const getPhraseValue = <C, T extends keyof Locales, K extends keyof PhraseKeys>(
   localizedPhrases: LocalizedPhrases,
   localeKey: T,
   phraseKey: K,
-  args: {
-    [KV in keyof PhraseKeys[K]["variables"]]: PhraseKeys[K]["variables"][KV];
-  } &
-    {
-      [KCV in keyof PhraseKeys[K]["contentVariables"]]: C;
-    } &
-    {
-      [KSC in keyof PhraseKeys[K]["styleClasses"]]: (
-        content: C,
-        styledContentName: keyof PhraseKeys[K]["styledContents"] & string
-      ) => C;
-    }
+  args: ARGTYPE<C, K>
 ): StaticNode<C>[] => {
   const defaultLocaleCode: string = Object.values(localizedPhrases.locales).find(l => l.isGlobalDefault)?.localeCode;
   const locale = localizedPhrases.locales[localeKey];
@@ -107,17 +130,14 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
       args
     ) as StaticNode<C>[];
   }
-  const hrefMap = {} as {
-    [key in keyof PhraseKeys[K]["links"] & string]: string;
-  };
+  const hrefMap: Record<string, string> = {};
   for (const k in phrase.links) {
-    const linkKey = k as keyof PhraseKeys[K]["links"] & string;
     const link: {
       linkName: string;
       href: PlainTextNode[];
       displayValue: TextNode[];
-    } = phrase.links[linkKey as keyof typeof phrase.links];
-    hrefMap[linkKey] = getStaticText(link.href, args);
+    } = phrase.links[k as keyof typeof phrase.links];
+    hrefMap[k as string] = getStaticText(link.href, args);
   }
   const linkMap = {} as {
     [k: string]: StaticNode<C>[];
@@ -131,9 +151,9 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
     linkMap[linkKey] = getStaticNodes(
       link.displayValue,
       args,
-      hrefMap,
-      {},
-      interpolationMap
+      hrefMap as HREF_MAP<K>,
+      {} as LINK_MAP<C, K>,
+      interpolationMap as INTERPOLATION_MAP<C, K>
     ) as StaticNode<C>[];
   }
 
@@ -152,19 +172,19 @@ export const getPhraseValue = <C, T extends keyof Locales, K extends keyof Phras
       nodes: getStaticNodes(
         styledContent.displayValue,
         args,
-        hrefMap,
-        {},
-        interpolationMap
+        hrefMap as HREF_MAP<K>,
+        {} as LINK_MAP<C, K>,
+        interpolationMap as INTERPOLATION_MAP<C, K>
       ) as StaticNode<C>[],
     };
   }
   return getStaticNodes(
     phrase.phrase,
     args,
-    hrefMap,
-    linkMap,
-    interpolationMap,
-    styledContentMap
+    hrefMap as HREF_MAP<K>,
+    linkMap as LINK_MAP<C, K>,
+    interpolationMap as INTERPOLATION_MAP<C, K>,
+    styledContentMap as STYLED_CONTENT_MAP<C, K>
   ) as StaticNode<C>[];
 };
 
@@ -237,199 +257,158 @@ export interface StaticContentVariable<C> {
 export type StaticNode<C> = StaticTextNode<C> | StaticLinkNode<C> | StaticUnOrderedListNode<C> | StaticOrderedListNode<C> | StaticContentVariable<C>;
 
 const getStaticNodes = <C, K extends keyof PhraseKeys>(
-  textNodes: TextNode[],
-  argMap: {
-    [KV in keyof PhraseKeys[K]["variables"]]: PhraseKeys[K]["variables"][KV];
-  } &
-    {
-      [KCV in keyof PhraseKeys[K]["contentVariables"]]: C;
-    } &
-    {
-      [KSC in keyof PhraseKeys[K]["styleClasses"]]: (
-        content: C,
-        styledContentName: keyof PhraseKeys[K]["styledContents"] & string
-      ) => C;
-    },
-  hrefMap: { [key in keyof PhraseKeys[K]["links"] as string]: string } = {} as {
-    [key in keyof PhraseKeys[K]["links"] as string]: string;
-  },
-  linkMap: {
-    [key in keyof PhraseKeys[K]["links"] as string]: StaticNode<C>[];
-  } = {} as {
-    [key in keyof PhraseKeys[K]["links"] as string]: StaticNode<C>[];
-  },
-  interpolationsMap: {
-    [key in keyof PhraseKeys[K]["interpolations"] as string]: StaticNode<C>[];
-  } = {} as {
-    [key in keyof PhraseKeys[K]["interpolations"] as string]: StaticNode<C>[];
-  },
-  styledContentsMap: {
-    [key in keyof PhraseKeys[K]["styledContents"] as string]: {
-        nodes: StaticNode<C>[],
-        styleClass: keyof PhraseKeys[K]["styleClasses"]
-    };
-  } = {} as {
-    [key in keyof PhraseKeys[K]["styledContents"] as string]: {
-        nodes: StaticNode<C>[],
-        styleClass: keyof PhraseKeys[K]["styleClasses"]
-    };
-  }
-): (StaticNode<C> | StaticListNode<C>|StaticContentVariable<C>|StaticStyledTextNode<C, keyof PhraseKeys[K]["styledContents"]&string>)[] => {
-  return textNodes.map((textNode) => {
-    const children = getStaticNodes(
-      textNode.children,
-      argMap,
-      hrefMap,
-      linkMap,
-      interpolationsMap,
-      styledContentsMap
-    );
-    if (textNode.type == PhraseType.Variable) {
-      const variableName = textNode.content.substring(
-        1,
-        textNode.content.length - 1
-      ) as keyof PhraseKeys[K]["variables"] & string;
-      const variableValue =
-        argMap?.[variableName]?.toString?.() ?? ("" as string);
-      return {
-        type: "text",
-        content: variableValue,
-        styles: textNode.styles,
-        children: [],
-      } as StaticTextNode<C>;
-    }
-    if (textNode.type == PhraseType.ContentVariable) {
-      const contentVariableName = textNode.content.substring(
-        1,
-        textNode.content.length - 1
-      ) as keyof PhraseKeys[K]["contentVariables"] & string;
-      const contentVariableValue: C = argMap?.[contentVariableName];
-      return {
-        type: "content",
-        data: contentVariableValue,
-      } as StaticContentVariable<C>;
-    }
-    if (textNode.type == PhraseType.StyledContent) {
-      const styledContentName = textNode.content.substring(
-        1,
-        textNode.content.length - 1
-      ) as keyof PhraseKeys[K]["styledContents"] & string;
-      const styledContentChildren = styledContentsMap?.[styledContentName] as {
-        nodes: StaticNode<C>[],
-        styleClass: keyof PhraseKeys[K]["styleClasses"]&string
-      };
-      const styleClassFunction =
-        argMap?.[
-          styledContentChildren?.styleClass as keyof PhraseKeys[K]["styleClasses"] &
-            string
-        ];
-      return {
-        type: "styled-content",
-        styleClass: styledContentChildren?.styleClass,
-        styledContentName,
-        styleClassFunction,
-        content: "",
-        styles: textNode.styles,
-        children: styledContentChildren.nodes,
-      } as StaticStyledTextNode<C, keyof PhraseKeys[K]["styledContents"] & string>;
-    }
+   textNodes: TextNode[],
+   argMap: ARGTYPE<C, K>,
+   hrefMap: HREF_MAP<K> = {} as HREF_MAP<K>,
+   linkMap: LINK_MAP<C, K> = {} as LINK_MAP<C, K>,
+   interpolationsMap: INTERPOLATION_MAP<C, K> = {} as INTERPOLATION_MAP<C, K>,
+   styledContentsMap: STYLED_CONTENT_MAP<C, K> = {} as STYLED_CONTENT_MAP<C, K>
+ ): (StaticNode<C> | StaticListNode<C>|StaticContentVariable<C>|StaticStyledTextNode<C, keyof PhraseKeys[K]["styledContents"]&string>)[] => {
+   return textNodes.map((textNode) => {
+     const children = getStaticNodes(
+       textNode.children,
+       argMap,
+       hrefMap,
+       linkMap,
+       interpolationsMap,
+       styledContentsMap
+     );
+     if (textNode.type == ContentType.Variable) {
+       const variableName = textNode.content.substring(
+         1,
+         textNode.content.length - 1
+       ) as keyof PhraseKeys[K]["variables"] & string;
+       const variableValue =
+         argMap?.[variableName]?.toString?.() ?? ("" as string);
+       return {
+         type: "text",
+         content: variableValue,
+         styles: textNode.styles,
+         children: [],
+       } as StaticTextNode<C>;
+     }
+     if (textNode.type == ContentType.ContentVariable) {
+       const contentVariableName = textNode.content.substring(
+         1,
+         textNode.content.length - 1
+       ) as keyof PhraseKeys[K]["contentVariables"] & string;
+       const contentVariableValue: C = argMap?.[contentVariableName];
+       return {
+         type: "content",
+         data: contentVariableValue,
+       } as StaticContentVariable<C>;
+     }
+     if (textNode.type == ContentType.StyledContent) {
+       const styledContentName = textNode.content.substring(
+         1,
+         textNode.content.length - 1
+       ) as keyof PhraseKeys[K]["styledContents"] & string;
+       const styledContentChildren = styledContentsMap?.[styledContentName] as {
+         nodes: StaticNode<C>[],
+         styleClass: keyof PhraseKeys[K]["styleClasses"]&string
+       };
+       const styleClassFunction =
+         argMap?.[
+           styledContentChildren?.styleClass as keyof PhraseKeys[K]["styleClasses"] &
+             string
+         ];
+       return {
+         type: "styled-content",
+         styleClass: styledContentChildren?.styleClass,
+         styledContentName,
+         styleClassFunction,
+         content: "",
+         styles: textNode.styles,
+         children: styledContentChildren.nodes,
+       } as StaticStyledTextNode<C, keyof PhraseKeys[K]["styledContents"] & string>;
+     }
 
-    if (textNode.type == PhraseType.Interpolation) {
-      const interpolationName = textNode.content.substring(
-        1,
-        textNode.content.length - 1
-      ) as keyof PhraseKeys[K]["interpolations"] & string;
-      const interpolationChildren = interpolationsMap[
-        interpolationName
-      ] as StaticNode<C>[];
-      return {
-        type: "text",
-        content: "",
-        styles: textNode.styles,
-        children: interpolationChildren,
-      } as StaticTextNode<C>;
-    }
-    if (textNode.type == PhraseType.Link) {
-      const linkName = textNode.content.substring(
-        1,
-        textNode.content.length - 1
-      ) as keyof PhraseKeys[K]["links"] & string;
-      const linkChildren = linkMap[linkName] as StaticNode<C>[];
-      return {
-        type: "link",
-        linkName,
-        href: hrefMap[linkName],
-        styles: textNode.styles,
-        children: linkChildren,
-      } as StaticLinkNode<C>;
-    }
-    if (textNode.type == PhraseType.Li) {
-      return {
-        type: "li",
-        children,
-      } as StaticListNode<C>;
-    }
-    if (textNode.type == PhraseType.Ol) {
-      const listChildren = children as unknown as StaticListNode<C>[];
-      return {
-        type: "ol",
-        children: listChildren,
-      } as StaticOrderedListNode<C>;
-    }
-    if (textNode.type == PhraseType.UL) {
-      const listChildren = children as unknown as StaticListNode<C>[];
-      return {
-        type: "ul",
-        children: listChildren,
-      } as StaticUnOrderedListNode<C>;
-    }
-    return {
-      type: "text",
-      content: textNode.content,
-      styles: textNode.styles,
-      children,
-    } as StaticTextNode<C>;
-  });
-};
+     if (textNode.type == ContentType.Interpolation) {
+       const interpolationName = textNode.content.substring(
+         1,
+         textNode.content.length - 1
+       ) as keyof PhraseKeys[K]["interpolations"] & string;
+       const interpolationChildren = interpolationsMap[
+         interpolationName
+       ] as StaticNode<C>[];
+       return {
+         type: "text",
+         content: "",
+         styles: textNode.styles,
+         children: interpolationChildren,
+       } as StaticTextNode<C>;
+     }
+     if (textNode.type == ContentType.Link) {
+       const linkName = textNode.content.substring(
+         1,
+         textNode.content.length - 1
+       ) as keyof PhraseKeys[K]["links"] & string;
+       const linkChildren = linkMap[linkName] as StaticNode<C>[];
+       return {
+         type: "link",
+         linkName,
+         href: hrefMap[linkName],
+         styles: textNode.styles,
+         children: linkChildren,
+       } as StaticLinkNode<C>;
+     }
+     if (textNode.type == ContentType.Li) {
+       return {
+         type: "li",
+         children,
+       } as StaticListNode<C>;
+     }
+     if (textNode.type == ContentType.Ol) {
+       const listChildren = children as unknown as StaticListNode<C>[];
+       return {
+         type: "ol",
+         children: listChildren,
+       } as StaticOrderedListNode<C>;
+     }
+     if (textNode.type == ContentType.UL) {
+       const listChildren = children as unknown as StaticListNode<C>[];
+       return {
+         type: "ul",
+         children: listChildren,
+       } as StaticUnOrderedListNode<C>;
+     }
+     return {
+       type: "text",
+       content: textNode.content,
+       styles: textNode.styles,
+       children,
+     } as StaticTextNode<C>;
+   });
+ };
 
 const getInterpolationValue = <
-C,
-K extends keyof PhraseKeys,
-> (
-    interpolation: Interpolation,
-    args: {
-        [KV in keyof PhraseKeys[K]["variables"]]: PhraseKeys[K]["variables"][KV];
-    }&{
-        [KCV in keyof PhraseKeys[K]["contentVariables"]]: C;
-    }&{
-      [KSC in keyof PhraseKeys[K]["styleClasses"]]: (
-        content: C,
-        styledContentName: keyof PhraseKeys[K]["styledContents"] & string
-      ) => C;
-    }
-
-     ) => {
-  for (const caseStatement of interpolation.cases) {
-    const argValue: PhraseKeys[K]["variables"][keyof PhraseKeys[K]["variables"]]|string|number|boolean = args[caseStatement.variable as keyof typeof args];
-    const comparatorValue = caseStatement.value as PhraseKeys[K]["variables"][keyof PhraseKeys[K]["variables"]];
-    const operator = caseStatement.operator as "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "is_fractional";
-    if (!isStatementTrue(argValue, comparatorValue, operator)) {
-      continue;
-    }
-    let allSubcasesAreTrue = true;
-    for (const subcase of caseStatement.subcases) {
-      const comparatorValue = subcase.value as PhraseKeys[K]["variables"][keyof PhraseKeys[K]["variables"]];
-      if (!isStatementTrue(argValue, comparatorValue, operator)) {
-        allSubcasesAreTrue = false;
-        break;
-      }
-    }
-    if (!allSubcasesAreTrue) {
-      break;
-    }
-    return getStaticNodes(caseStatement.resultant, args);
-  }
-  return getStaticNodes(interpolation.default, args);
+ C,
+ K extends keyof PhraseKeys,
+ > (
+     interpolation: Interpolation,
+     args: ARGTYPE<C, K>
+ ) => {
+   for (const caseStatement of interpolation.cases) {
+     const argValue = args[caseStatement.variable as keyof typeof args];
+     const comparatorValue = caseStatement.value as unknown as typeof argValue;
+     const operator = caseStatement.operator as "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "is_fractional";
+     if (!isStatementTrue(argValue, comparatorValue, operator)) {
+       continue;
+     }
+     let allSubcasesAreTrue = true;
+     for (const subcase of caseStatement.subcases) {
+       const comparatorValue = subcase.value as unknown as typeof argValue;
+         if (!isStatementTrue(argValue, comparatorValue, operator)) {
+           allSubcasesAreTrue = false;
+           break;
+         }
+       }
+       if (!allSubcasesAreTrue) {
+         break;
+       }
+       return getStaticNodes(caseStatement.resultant, args);
+   }
+   return getStaticNodes(interpolation.default, args);
 }
 
 const getStaticText = <
@@ -1202,6 +1181,20 @@ export async function generate(
         ],
         additionalProperties: false,
       },
+      ContentType: {
+        type: "string",
+        oneOf: [
+          { const: "text" },
+          { const: "li" },
+          { const: "ul" },
+          { const: "ol" },
+          { const: "interpolation" },
+          { const: "link" },
+          { const: "variable" },
+          { const: "content-variable" },
+          { const: "styled-content" },
+        ],
+      },
       TextNode: {
         type: "object",
         properties: {
@@ -1209,18 +1202,7 @@ export async function generate(
             type: ["string"],
           },
           type: {
-            type: "string",
-            oneOf: [
-              { const: "text" },
-              { const: "li" },
-              { const: "ul" },
-              { const: "ol" },
-              { const: "interpolation" },
-              { const: "link" },
-              { const: "variable" },
-              { const: "content-variable" },
-              { const: "styled-content" },
-            ],
+            $ref: "#/definitions/ContentType",
           },
           styles: {
             $ref: "#/definitions/Styles",
@@ -1232,12 +1214,7 @@ export async function generate(
             },
           },
         },
-        required: [
-          "content",
-          "styles",
-          "type",
-          "children"
-        ],
+        required: ["content", "styles", "type", "children"],
         additionalProperties: false,
       },
       PlainTextNode: {
@@ -1248,16 +1225,10 @@ export async function generate(
           },
           type: {
             type: "string",
-            oneOf: [
-              { const: "text" },
-              { const: "variable" },
-            ],
+            oneOf: [{ const: "text" }, { const: "variable" }],
           },
         },
-        required: [
-          "content",
-          "type",
-        ],
+        required: ["content", "type"],
         additionalProperties: false,
       },
       SubCase: {
@@ -1422,6 +1393,74 @@ export async function generate(
         properties: {},
         required: [] as string[],
         additionalProperties: false,
+      },
+      PhraseType: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "phraseKey",
+          "variables",
+          "links",
+          "interpolations",
+          "phrase",
+          "contentVariables",
+          "styleClasses",
+          "styledContents",
+          "args",
+        ],
+        properties: {
+          phraseKey: {
+            type: ["string"],
+          },
+          phrase: {
+            type: "array",
+            items: {
+              $ref: "#/definitions/TextNode",
+            },
+          },
+          args: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+          variables: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+          contentVariables: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+          styleClasses: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+          styledContents: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+          links: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+          interpolations: {
+            type: "object",
+            properties: {},
+            required: [] as string[],
+            additionalProperties: false,
+          },
+        },
       },
       LocalizedPhrases: {
         type: "object",
@@ -1695,22 +1734,6 @@ interface Interpolation {
   default: [];
 }
 `.trim()
-
-  if (tsCode.indexOf('enum PhraseType') == -1) {
-      tsCode += '\n\n' +`
-export enum PhraseType {
-    ContentVariable = "content-variable",
-    Interpolation = "interpolation",
-    Li = "li",
-    Link = "link",
-    Ol = "ol",
-    StyledContent = "styled-content",
-    Text = "text",
-    UL = "ul",
-    Variable = "variable",
-}
-`.trim()
-  }
     }
     await fs.promises.writeFile(tsFile, tsCode, 'utf-8');
     const textJson = await getJSON(state);
