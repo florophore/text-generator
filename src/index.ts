@@ -6,8 +6,6 @@ import {
 } from "./floro-generator-schema-api";
 //@ts-ignore
 import floroGeneratorFile from '../floro/floro.generator.json' assert {type: "json"};
-import path from "path";
-import fs from "fs";
 import { quicktype, InputData, JSONSchemaInput, TypeScriptTargetLanguage } from "quicktype-core";
 
 type Languages = 'typescript';
@@ -1689,6 +1687,9 @@ export async function generate(
     source,
     () => new JSONSchemaInput(undefined)
   );
+
+  const fs = await import('fs');
+  const path = await import('path');
 
   if (args.lang == 'typescript') {
     const lang = new TypeScriptTargetLanguage();
