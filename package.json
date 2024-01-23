@@ -1,14 +1,14 @@
 {
   "name": "@floro/text-generator",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "main": "./dist/cjs/src/index.js",
-  "module": "./src/esm/src/index.js",
+  "module": "./src/esm/src/get-json.js",
   "types": "./dist/types/src/index.d.ts",
   "react-native": "./dist/cjs/src/get-json.js",
   "exports": {
     ".": {
       "types": "./dist/types/src/index.d.ts",
-      "import": "./dist/esm/src/index.js",
+      "import": "./dist/esm/src/get-json.js",
       "require": "./dist/cjs/src/index.js",
       "default": "./src/index.ts"
     },
