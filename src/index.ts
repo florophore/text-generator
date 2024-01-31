@@ -24,7 +24,7 @@ const CODE = `
 const isStatementTrue = <T>(
   value: T,
   comparisonValue: T,
-  operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "is_fractional"
+  operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "ends_with" | "is_fractional"
 ): boolean => {
   if (operator == "eq") {
     return value == comparisonValue;
@@ -45,6 +45,9 @@ const isStatementTrue = <T>(
   }
   if (operator == "lte") {
     return numberValue <= comparisonNumberValue;
+  }
+  if (operator == "ends_with") {
+    return (numberValue?.toString?.() ?? "").endsWith(comparisonNumberValue?.toString?.() ?? "-1");
   }
   if (operator == "is_fractional" && typeof numberValue == "number") {
     return numberValue % 1 != 0;
@@ -389,7 +392,7 @@ const getInterpolationValue = <
    for (const caseStatement of interpolation.cases) {
      const argValue = args[caseStatement.variable as keyof typeof args];
      const comparatorValue = caseStatement.value as unknown as typeof argValue;
-     const operator = caseStatement.operator as "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "is_fractional";
+     const operator = caseStatement.operator as "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "ends_with" | "is_fractional";
      if (!isStatementTrue(argValue, comparatorValue, operator)) {
        continue;
      }
@@ -654,6 +657,7 @@ export async function generate(
               { const: "gte" },
               { const: "lt" },
               { const: "lte" },
+              { const: "ends_with" },
               { const: "is_fractional" },
             ],
           },
@@ -679,6 +683,7 @@ export async function generate(
               { const: "gte" },
               { const: "lt" },
               { const: "lte" },
+              { const: "ends_with" },
               { const: "is_fractional" },
             ],
           },
