@@ -1,6 +1,6 @@
 {
   "name": "@floro/text-generator",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "main": "./dist/cjs/src/index.js",
   "module": "./src/esm/src/get-json.js",
   "types": "./dist/types/src/index.d.ts",
