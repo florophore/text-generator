@@ -119,9 +119,22 @@ const processNodes = (
   });
 };
 
-const getTextNodes = (jsonString: string): TextNode[] => {
+const getTextNodes = (jsonString: string, trim: boolean): TextNode[] => {
   const root: {children?: UnprocessedNode[]} = JSON.parse(jsonString);
-  return processNodes(root?.children ?? []);
+  const nodes = processNodes(root?.children ?? []);
+
+  if (trim) {
+    for (let i = nodes.length -1; i>=0; i--) {
+      const node = nodes[i];
+      if (node.children.length == 0 && (node?.content?.trim?.()?.length ?? 0) == 0) {
+        nodes.pop();
+        continue;
+      }
+      break;
+    }
+  }
+
+  return nodes;
 }
 
 const getPlainTextNodes = (jsonString: string): PlainTextNode[] => {
@@ -138,6 +151,7 @@ const getPlainTextNodes = (jsonString: string): PlainTextNode[] => {
 export async function getJSON<T>(
   state: SchemaRoot,
 ): Promise<T> {
+  const trim = true;
   const localizedPhrases = {
     locales: {},
     localizedPhraseKeys: {},
@@ -276,7 +290,7 @@ export async function getJSON<T>(
                 const defaultJSON = defaultFallbackInterpolationTranslation?.defaultValue?.json ?? "{}";
                 localizedPhrases.localizedPhraseKeys[locale.localeCode][
                   phraseKey
-                ].interpolations[interpolation.name].default = getTextNodes(defaultJSON);
+                ].interpolations[interpolation.name].default = getTextNodes(defaultJSON, trim);
 
                 for (const conditional of defaultConditionals) {
                   const value = primaryVariable?.varType == "string" ?
@@ -309,7 +323,7 @@ export async function getJSON<T>(
                   }) ?? []
 
                   const resultantJSON = conditional?.resultant?.json ?? "{}";
-                  const resultant = getTextNodes(resultantJSON);
+                  const resultant = getTextNodes(resultantJSON, trim);
                   const conditionalCase = {
                     variable: primaryVariable.name,
                     operator: conditional.operator,
@@ -327,7 +341,7 @@ export async function getJSON<T>(
                 const defaultJSON = fallbackInterpolationTranslation?.defaultValue?.json ?? "{}";
                 localizedPhrases.localizedPhraseKeys[locale.localeCode][
                   phraseKey
-                ].interpolations[interpolation.name].default = getTextNodes(defaultJSON);
+                ].interpolations[interpolation.name].default = getTextNodes(defaultJSON, trim);
 
                 for (const conditional of fallbackConditionals) {
                   const value = primaryVariable?.varType == "string" ?
@@ -360,7 +374,7 @@ export async function getJSON<T>(
                   }) ?? [];
 
                   const resultantJSON = conditional?.resultant?.json ?? "{}";
-                  const resultant = getTextNodes(resultantJSON);
+                  const resultant = getTextNodes(resultantJSON, trim);
                   const conditionalCase = {
                     variable: primaryVariable.name,
                     operator: conditional.operator,
@@ -378,7 +392,7 @@ export async function getJSON<T>(
             const defaultJSON = interpolationTranslation?.defaultValue?.json ?? "{}";
             localizedPhrases.localizedPhraseKeys[locale.localeCode][
               phraseKey
-            ].interpolations[interpolation.name].default = getTextNodes(defaultJSON);
+            ].interpolations[interpolation.name].default = getTextNodes(defaultJSON, trim);
 
             for (const conditional of conditionals) {
               const value = primaryVariable?.varType == "string" ?
@@ -411,7 +425,7 @@ export async function getJSON<T>(
               }) ?? [];
 
               const resultantJSON = conditional?.resultant?.json ?? "{}";
-              const resultant = getTextNodes(resultantJSON);
+              const resultant = getTextNodes(resultantJSON, trim);
               const conditionalCase = {
                 variable: primaryVariable.name,
                 operator: conditional.operator,
@@ -459,7 +473,7 @@ export async function getJSON<T>(
 
           if ((linkTranslation?.linkDisplayValue?.plainText ?? "")?.trim() != "") {
             const displayValueJSON = linkTranslation?.linkDisplayValue?.json ?? '{}';
-            const displayValue = getTextNodes(displayValueJSON);
+            const displayValue = getTextNodes(displayValueJSON, trim);
             localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].links[link.linkName] = {
               displayValue,
               linkName: link.linkName
@@ -467,14 +481,14 @@ export async function getJSON<T>(
           } else {
             if ((fallbackLinkTranslation?.linkDisplayValue?.plainText ?? "").trim() != "") {
               const displayValueJSON = fallbackLinkTranslation?.linkDisplayValue?.json ?? '{}';
-              const displayValue = getTextNodes(displayValueJSON);
+              const displayValue = getTextNodes(displayValueJSON, trim);
               localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].links[link.linkName] = {
                 displayValue,
                 linkName: link.linkName
               };
             } else {
               const displayValueJSON = defaultLink?.linkDisplayValue?.json ?? '{}';
-              const displayValue = getTextNodes(displayValueJSON);
+              const displayValue = getTextNodes(displayValueJSON, trim);
               localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].links[link.linkName] = {
                 displayValue,
                 linkName: link.linkName
@@ -546,7 +560,7 @@ export async function getJSON<T>(
           if ((styledContentLocaleRule?.displayValue?.plainText ?? "")?.trim() != "") {
             const displayValueJSON =
               styledContentLocaleRule?.displayValue?.json ?? "{}";
-            const displayValue = getTextNodes(displayValueJSON);
+            const displayValue = getTextNodes(displayValueJSON, trim);
             localizedPhrases.localizedPhraseKeys[locale.localeCode][
               phraseKey
             ].styledContents[styledContent.name] = {
@@ -557,7 +571,7 @@ export async function getJSON<T>(
             if ((fallbackStyledContentLocaleRule?.displayValue?.plainText ?? "").trim() != "") {
               const displayValueJSON =
                 fallbackStyledContentLocaleRule?.displayValue?.json ?? "{}";
-              const displayValue = getTextNodes(displayValueJSON);
+              const displayValue = getTextNodes(displayValueJSON, trim);
               localizedPhrases.localizedPhraseKeys[locale.localeCode][
                 phraseKey
               ].styledContents[styledContent.name] = {
@@ -567,7 +581,7 @@ export async function getJSON<T>(
             } else {
               const displayValueJSON =
                 defaultStyledContentLocaleRule?.displayValue?.json ?? "{}";
-              const displayValue = getTextNodes(displayValueJSON);
+              const displayValue = getTextNodes(displayValueJSON, trim);
               localizedPhrases.localizedPhraseKeys[locale.localeCode][
                 phraseKey
               ].styledContents[styledContent.name] = {
@@ -635,14 +649,14 @@ export async function getJSON<T>(
 
             if ((phraseSectionLocaleRule?.displayValue?.plainText ?? "").trim() != "") {
               const phraseJSON = phraseSectionLocaleRule?.displayValue?.json ?? '{}';
-              nodeLists.push(...getTextNodes(phraseJSON));
+              nodeLists.push(...getTextNodes(phraseJSON, trim));
             } else {
               if ((fallbackPhraseSectionLocaleRule?.displayValue?.plainText ?? "").trim() != "") {
                 const phraseJSON = fallbackPhraseSectionLocaleRule?.displayValue?.json ?? '{}';
-                nodeLists.push(...getTextNodes(phraseJSON));
+                nodeLists.push(...getTextNodes(phraseJSON, trim));
               } else {
                 const phraseJSON = defaultPhraseSectionLocaleRule?.displayValue?.json ?? '{}';
-                nodeLists.push(...getTextNodes(phraseJSON));
+                nodeLists.push(...getTextNodes(phraseJSON, trim));
               }
             }
             if (!isLast) {
@@ -684,14 +698,14 @@ export async function getJSON<T>(
 
           if ((phraseTranslation?.plainText ?? "").trim() != "") {
             const phraseJSON = phraseTranslation?.json ?? '{}';
-            localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].phrase = getTextNodes(phraseJSON);
+            localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].phrase = getTextNodes(phraseJSON, trim);
           } else {
             if ((fallbackPhraseTranslation?.plainText ?? "").trim() != "") {
               const phraseJSON = fallbackPhraseTranslation?.json ?? '{}';
-              localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].phrase = getTextNodes(phraseJSON);
+              localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].phrase = getTextNodes(phraseJSON, trim);
             } else {
               const phraseJSON = defaultPhraseTranslation?.json ?? '{}';
-              localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].phrase = getTextNodes(phraseJSON);
+              localizedPhrases.localizedPhraseKeys[locale.localeCode][phraseKey].phrase = getTextNodes(phraseJSON, trim);
             }
           }
         }
