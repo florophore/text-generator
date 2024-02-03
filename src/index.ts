@@ -207,7 +207,7 @@ export interface StaticStyledTextNode<C, N extends string> {
   type: "styled-content";
   styleClass: string;
   styledContentName: N;
-  styleClassFunction: (content: C, styledContentName: N) => C;
+  styleClassFunction: (content: C, styledContentName: N, plainTextContent?: string) => C;
   content: string;
   styles: {
     isBold: boolean;
